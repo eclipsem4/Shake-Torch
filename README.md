@@ -8,6 +8,11 @@ Native Kotlin & Jetpack Compose utility that toggles your Android device's flash
 3. Connect a physical Android 12+ (`API 31+`) device with a rear LED camera flash (accelerometers & hardware torch cannot be fully exercised on a virtual emulator without sensor injection).
 4. Click **Run (`app`)** to build and install the debug APK.
 
+## GitHub Actions APK Build (`eclipsem4/Shake-Torch`)
+1. Push this project to `https://github.com/eclipsem4/Shake-Torch` (via AI Studio **Settings -> Push to GitHub** or `git push`).
+2. Open the **Actions** tab in `eclipsem4/Shake-Torch` and select the latest **Build ShakeLight Debug APK** run.
+3. Download the **ShakeLight-debug-apk** artifact (`app-debug.apk`) and install it on your Android 12+ device.
+
 ## Feature Testing Checklist
 1. **Onboarding & Core Permissions**: Launch fresh -> swipe through the 3 glass onboarding cards -> tap **Grant Core Permissions** -> verify Camera, Notifications, and Phone State prompts appear.
 2. **Start / Stop Shake Detection**: On Home, tap the central Liquid Glass orb -> verify status pill switches to **Listening for shake** and the persistent notification appears with a **Stop** action -> tap **Stop** in the notification to verify the service stops cleanly.
