@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 @Singleton
 class CallStateMonitor @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val telephonyManager: TelephonyManager?
 ) {
     private val _isCallActive = MutableStateFlow(false)

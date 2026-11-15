@@ -45,7 +45,7 @@ data class MainUiState(
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    @ApplicationContext private val appContext: Context,
+    @param:ApplicationContext private val appContext: Context,
     private val settingsRepository: SettingsRepository,
     private val stateBus: ServiceStateBus,
     private val flashlightController: FlashlightController,
