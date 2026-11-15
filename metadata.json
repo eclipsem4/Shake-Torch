@@ -1,0 +1,6 @@
+{
+  "name": "ShakeLight",
+  "description": "Liquid Glass shake-to-flashlight utility with background sensor detection, call-pause, haptics, and battery optimization.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

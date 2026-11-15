@@ -1,0 +1,141 @@
+<resources>
+    <string name="app_name">ShakeLight</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_settings">Settings</string>
+    <string name="nav_battery_permissions">System</string>
+
+    <!-- Notification -->
+    <string name="notification_channel_name">Shake Detection Service</string>
+    <string name="notification_channel_description">Keeps accelerometer shake detection active while your screen is off</string>
+    <string name="notification_title_listening">ShakeLight is listening</string>
+    <string name="notification_title_torch_on">Flashlight is ON</string>
+    <string name="notification_title_paused_call">Paused during phone call</string>
+    <string name="notification_title_paused_battery">Paused on low battery</string>
+    <string name="notification_text_listening">Shake your phone to toggle the flashlight</string>
+    <string name="notification_text_torch_on">Shake again or tap Stop to turn off</string>
+    <string name="notification_text_paused_call">Detection will resume automatically when call ends</string>
+    <string name="notification_text_paused_battery">Battery fell below your saver threshold</string>
+    <string name="notification_action_stop">Stop</string>
+
+    <!-- Home Screen -->
+    <string name="home_subtitle">Shake-to-Torch Utility</string>
+    <string name="status_listening">Listening for shake</string>
+    <string name="status_torch_on">Flashlight Active</string>
+    <string name="status_inactive">Detection Off</string>
+    <string name="status_paused_call">Paused: Call in Progress</string>
+    <string name="status_paused_battery">Paused: Low Battery (%1$d%%)</string>
+    <string name="status_no_flash">No Camera Flash Found</string>
+    <string name="orb_tap_to_start">Tap to Arm ShakeLight</string>
+    <string name="orb_tap_to_stop">Tap to Disarm</string>
+    <string name="quick_torch_on">Turn Torch Off</string>
+    <string name="quick_torch_off">Test Torch</string>
+    <string name="no_flash_banner_title">Flashlight Hardware Unavailable</string>
+    <string name="no_flash_banner_body">This device does not report a camera flash unit. Shake detection meter still works for testing.</string>
+    <string name="shake_meter_title">Live Shake Meter</string>
+    <string name="shake_meter_hint_double">Perform a crisp double-chop to test threshold</string>
+    <string name="shake_meter_hint_single">Perform a sharp shake to test threshold</string>
+    <string name="shake_meter_threshold_label">Threshold %1$d/10 (%2$s)</string>
+    <string name="shake_meter_peak_label">Peak %1$.1f g</string>
+    <string name="shake_meter_live_g">Live %1$.2f g</string>
+    <string name="shake_meter_trigger_g">Trigger ≥ %1$.2f g</string>
+    <string name="shake_meter_triggered_badge">Threshold Reached</string>
+    <string name="home_badge_gesture_double">Double-Chop</string>
+    <string name="home_badge_gesture_single">Single Shake</string>
+    <string name="home_badge_cooldown">Cooldown %1$.1fs</string>
+    <string name="home_badge_battery">Battery %1$d%%</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_subtitle">Tune motion sensitivity, feedback, and power</string>
+    <string name="settings_section_gesture">Motion &amp; Gesture</string>
+    <string name="settings_gesture_mode_title">Shake Gesture Style</string>
+    <string name="settings_gesture_mode_desc">Double-chop prevents accidental pocket triggers</string>
+    <string name="settings_gesture_double">Double-Chop</string>
+    <string name="settings_gesture_single">Single Shake</string>
+    <string name="settings_sensitivity_title">Shake Intensity Threshold</string>
+    <string name="settings_sensitivity_desc">Higher sensitivity triggers on lighter shakes</string>
+    <string name="sensitivity_low">Low</string>
+    <string name="sensitivity_medium">Medium</string>
+    <string name="sensitivity_high">High</string>
+    <string name="settings_cooldown_title">Toggle Cooldown</string>
+    <string name="settings_cooldown_desc">Minimum pause between light ON/OFF toggles</string>
+    <string name="settings_cooldown_value">%1$.1f s</string>
+
+    <string name="settings_section_behavior">Feedback &amp; Automation</string>
+    <string name="settings_vibrate_title">Vibrate on Toggle</string>
+    <string name="settings_vibrate_desc">1 pulse when flashlight turns ON, 2 pulses for OFF</string>
+    <string name="settings_pause_calls_title">Pause During Calls</string>
+    <string name="settings_pause_calls_desc">Automatically suspend detection while ringing or in call</string>
+    <string name="settings_boot_title">Start on Device Boot</string>
+    <string name="settings_boot_desc">Automatically arm ShakeLight after your phone restarts</string>
+
+    <string name="settings_section_power">Power &amp; Sampling</string>
+    <string name="settings_battery_saver_title">Battery Saver Mode</string>
+    <string name="settings_battery_saver_desc">Use lowest power rate and auto-pause on low battery</string>
+    <string name="settings_battery_threshold_title">Low Battery Cutoff</string>
+    <string name="settings_battery_threshold_desc">Pause shake detection when charge drops below %1$d%%</string>
+    <string name="settings_sampling_title">Sensor Sampling Rate</string>
+    <string name="settings_sampling_normal">Low Power (Normal)</string>
+    <string name="settings_sampling_ui">Responsive (UI)</string>
+
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_theme_title">Glass Theme</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_replay_onboarding">Replay Setup Guide</string>
+
+    <!-- Battery & Permissions Screen -->
+    <string name="system_title">Battery &amp; Permissions</string>
+    <string name="system_subtitle">Ensure reliable background operation with screen off</string>
+    <string name="perm_camera_title">Camera &amp; Flashlight</string>
+    <string name="perm_camera_desc">Used solely to access the rear LED torch without opening a camera preview.</string>
+    <string name="perm_notifications_title">Service Notifications</string>
+    <string name="perm_notifications_desc">Required on Android 13+ to display the persistent status and Stop button.</string>
+    <string name="perm_phone_title">Phone Call State</string>
+    <string name="perm_phone_desc">Lets ShakeLight pause detection during incoming or active phone calls.</string>
+    <string name="perm_battery_title">Battery Optimization Exemption</string>
+    <string name="perm_battery_desc">Prevents Android Doze from killing the shake sensor service in the background.</string>
+    <string name="status_granted">Granted</string>
+    <string name="status_missing">Needed</string>
+    <string name="status_exempt">Unrestricted</string>
+    <string name="status_restricted">Optimized</string>
+    <string name="action_grant">Grant</string>
+    <string name="action_allow_unrestricted">Allow Unrestricted</string>
+    <string name="action_open_settings">App Settings</string>
+
+    <string name="oem_tips_title">Device Manufacturer Tips</string>
+    <string name="oem_tips_subtitle">Some brands aggressively stop background services. Follow your device guide if ShakeLight stops after locking.</string>
+    <string name="oem_xiaomi_title">Xiaomi (MIUI / HyperOS)</string>
+    <string name="oem_xiaomi_body">Security app -&gt; Permissions -&gt; Autostart -&gt; Enable ShakeLight. Also set Battery Saver to "No restrictions" in App Info.</string>
+    <string name="oem_oppo_title">Oppo &amp; Realme (ColorOS)</string>
+    <string name="oem_oppo_body">Settings -&gt; Apps -&gt; App Management -&gt; ShakeLight -&gt; Battery usage -&gt; Enable "Allow background activity" and "Allow auto launch".</string>
+    <string name="oem_vivo_title">Vivo &amp; iQOO (FuntouchOS)</string>
+    <string name="oem_vivo_body">iManager -&gt; App Manager -&gt; Autostart manager -&gt; Allow ShakeLight, and set Background power consumption to "High background power usage".</string>
+    <string name="oem_samsung_title">Samsung (One UI)</string>
+    <string name="oem_samsung_body">Settings -&gt; Apps -&gt; ShakeLight -&gt; Battery -&gt; Select "Unrestricted", and remove ShakeLight from Sleeping / Deep Sleeping apps.</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Continue</string>
+    <string name="onboarding_finish">Start Using ShakeLight</string>
+    <string name="onboarding_page1_title">Instant Light, Zero Unlocking</string>
+    <string name="onboarding_page1_body">Use a crisp double-chop or shake gesture to toggle your flashlight anytime—even in your pocket or when the screen is off.</string>
+    <string name="onboarding_page2_title">Permissions That Stay Private</string>
+    <string name="onboarding_page2_body">ShakeLight requests Camera (torch LED), Notifications (persistent control), and Phone State (auto-pause during calls). No photos or call audio are ever accessed.</string>
+    <string name="onboarding_grant_core">Grant Core Permissions</string>
+    <string name="onboarding_page3_title">Stay Reliable Through Doze</string>
+    <string name="onboarding_page3_body">Exempting ShakeLight from battery restrictions keeps motion sensing responsive after locking your screen or rebooting.</string>
+    <string name="onboarding_exempt_battery">Optimize Reliability</string>
+
+    <!-- Accessibility Content Descriptions -->
+    <string name="cd_power_orb_toggle">Toggle shake detection service</string>
+    <string name="cd_flashlight_icon">Flashlight state icon</string>
+    <string name="cd_navigation_bar">Main navigation bar</string>
+    <string name="cd_sensitivity_slider">Shake sensitivity slider</string>
+    <string name="cd_cooldown_slider">Cooldown delay slider</string>
+    <string name="cd_battery_threshold_slider">Low battery cutoff slider</string>
+    <string name="cd_app_pfp">ShakeLight profile badge</string>
+</resources>
