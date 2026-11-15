@@ -41,6 +41,7 @@ class ShakeDetector @Inject constructor(
     // Low-pass gravity vector
     private val gravity = FloatArray(3)
     private var gravityInitialized = false
+    private var lastEventTimestampNs: Long = 0L
 
     // Double-chop state machine
     private var firstChopTimestampMs: Long = 0L
@@ -77,6 +78,7 @@ class ShakeDetector @Inject constructor(
 
         this.listener = listener
         gravityInitialized = false
+        lastEventTimestampNs = 0L
         firstChopTimestampMs = 0L
         droppedBetweenChops = false
 
@@ -106,38 +108,62 @@ class ShakeDetector @Inject constructor(
         }
         listener = null
         gravityInitialized = false
+        lastEventTimestampNs = 0L
         firstChopTimestampMs = 0L
         droppedBetweenChops = false
     }
 
     override fun onSensorChanged(event: SensorEvent) {
         if (event.sensor.type != Sensor.TYPE_ACCELEROMETER) return
+        processAcceleration(
+            ax = event.values[0],
+            ay = event.values[1],
+            az = event.values[2],
+            eventTimestampNs = event.timestamp,
+            elapsedRealtimeMs = SystemClock.elapsedRealtime()
+        )
+    }
 
+    internal fun processAcceleration(
+        ax: Float,
+        ay: Float,
+        az: Float,
+        eventTimestampNs: Long,
+        elapsedRealtimeMs: Long
+    ) {
         if (!gravityInitialized) {
-            gravity[0] = event.values[0]
-            gravity[1] = event.values[1]
-            gravity[2] = event.values[2]
+            gravity[0] = ax
+            gravity[1] = ay
+            gravity[2] = az
             gravityInitialized = true
+            lastEventTimestampNs = eventTimestampNs
             return
         }
 
-        // Low-pass filter isolates gravity; subtracting it yields high-pass linear acceleration.
-        val alpha = 0.80f
-        gravity[0] = alpha * gravity[0] + (1f - alpha) * event.values[0]
-        gravity[1] = alpha * gravity[1] + (1f - alpha) * event.values[1]
-        gravity[2] = alpha * gravity[2] + (1f - alpha) * event.values[2]
+        // Dynamic alpha based on actual sample delta keeps gravity isolation consistent across NORMAL & UI rates.
+        val dtSeconds = if (lastEventTimestampNs > 0L && eventTimestampNs > lastEventTimestampNs) {
+            ((eventTimestampNs - lastEventTimestampNs) / 1_000_000_000f).coerceIn(0.005f, 0.5f)
+        } else {
+            0.06f
+        }
+        lastEventTimestampNs = eventTimestampNs
+        val tau = 0.80f
+        val alpha = tau / (tau + dtSeconds)
 
-        val linearX = event.values[0] - gravity[0]
-        val linearY = event.values[1] - gravity[1]
-        val linearZ = event.values[2] - gravity[2]
+        gravity[0] = alpha * gravity[0] + (1f - alpha) * ax
+        gravity[1] = alpha * gravity[1] + (1f - alpha) * ay
+        gravity[2] = alpha * gravity[2] + (1f - alpha) * az
+
+        val linearX = ax - gravity[0]
+        val linearY = ay - gravity[1]
+        val linearZ = az - gravity[2]
 
         val linearMagnitude = sqrt(linearX * linearX + linearY * linearY + linearZ * linearZ)
         val gForce = linearMagnitude / SensorManager.GRAVITY_EARTH
 
         listener?.onMagnitudeChanged(gForce)
 
-        val now = SystemClock.elapsedRealtime()
-        if (now - lastTriggerTimestampMs < cooldownMillis) {
+        if (lastTriggerTimestampMs > 0L && elapsedRealtimeMs - lastTriggerTimestampMs < cooldownMillis) {
             firstChopTimestampMs = 0L
             droppedBetweenChops = false
             return
@@ -148,7 +174,7 @@ class ShakeDetector @Inject constructor(
         when (gestureMode) {
             GestureMode.SINGLE_SHAKE -> {
                 if (gForce >= thresholdG) {
-                    lastTriggerTimestampMs = now
+                    lastTriggerTimestampMs = elapsedRealtimeMs
                     listener?.onShakeDetected()
                 }
             }
@@ -156,25 +182,23 @@ class ShakeDetector @Inject constructor(
             GestureMode.DOUBLE_CHOP -> {
                 if (firstChopTimestampMs == 0L) {
                     if (gForce >= thresholdG) {
-                        firstChopTimestampMs = now
+                        firstChopTimestampMs = elapsedRealtimeMs
                         droppedBetweenChops = false
                     }
                 } else {
-                    val elapsedSinceFirst = now - firstChopTimestampMs
+                    val elapsedSinceFirst = elapsedRealtimeMs - firstChopTimestampMs
                     if (elapsedSinceFirst > DOUBLE_CHOP_WINDOW_MS) {
                         // Window expired; start fresh if still above threshold.
-                        firstChopTimestampMs = if (gForce >= thresholdG) now else 0L
+                        firstChopTimestampMs = if (gForce >= thresholdG) elapsedRealtimeMs else 0L
                         droppedBetweenChops = false
                     } else if (!droppedBetweenChops) {
-                        if (gForce < thresholdG * 0.62f || elapsedSinceFirst >= MIN_CHOP_GAP_MS) {
-                            if (gForce < thresholdG * 0.72f) {
-                                droppedBetweenChops = true
-                            }
+                        if (gForce < thresholdG * 0.70f) {
+                            droppedBetweenChops = true
                         }
                     } else if (gForce >= thresholdG && elapsedSinceFirst >= MIN_CHOP_GAP_MS) {
                         firstChopTimestampMs = 0L
                         droppedBetweenChops = false
-                        lastTriggerTimestampMs = now
+                        lastTriggerTimestampMs = elapsedRealtimeMs
                         listener?.onShakeDetected()
                     }
                 }
@@ -185,8 +209,8 @@ class ShakeDetector @Inject constructor(
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
 
     companion object {
-        private const val DOUBLE_CHOP_WINDOW_MS = 700L
-        private const val MIN_CHOP_GAP_MS = 110L
+        private const val DOUBLE_CHOP_WINDOW_MS = 950L
+        private const val MIN_CHOP_GAP_MS = 100L
         const val MAX_METER_G = 3.5f
 
         /**

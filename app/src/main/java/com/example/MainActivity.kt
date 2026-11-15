@@ -9,7 +9,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -33,12 +32,7 @@ class MainActivity : ComponentActivity() {
             val viewModel: MainViewModel = hiltViewModel()
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-            val systemDark = isSystemInDarkTheme()
-            val isDark = when (uiState.settings.themeMode) {
-                AppThemeMode.SYSTEM -> systemDark
-                AppThemeMode.DARK -> true
-                AppThemeMode.LIGHT -> false
-            }
+            val isDark = uiState.settings.themeMode == AppThemeMode.DARK
 
             LaunchedEffect(isDark) {
                 enableEdgeToEdge(
@@ -96,6 +90,7 @@ class MainActivity : ComponentActivity() {
                     onGestureModeChange = viewModel::setGestureMode,
                     onCooldownChange = viewModel::setCooldownMillis,
                     onVibrateChange = viewModel::setVibrateOnToggle,
+                    onHapticIntensityChange = viewModel::setHapticIntensity,
                     onPauseDuringCallsChange = viewModel::setPauseDuringCalls,
                     onStartOnBootChange = viewModel::setStartOnBoot,
                     onBatterySaverChange = viewModel::setBatterySaverEnabled,

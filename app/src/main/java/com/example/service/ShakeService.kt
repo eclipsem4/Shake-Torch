@@ -7,10 +7,12 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import android.os.SystemClock
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import com.example.MainActivity
 import com.example.R
 import com.example.ShakeLightApp
@@ -83,11 +85,16 @@ class ShakeService : Service() {
             isTorchOn = flashlightController.isTorchOn(),
             pauseReason = PauseReason.NONE
         )
-        startForeground(
-            NOTIFICATION_ID,
-            initialNotification,
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            ServiceCompat.startForeground(
+                this,
+                NOTIFICATION_ID,
+                initialNotification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, initialNotification)
+        }
         stateBus.setServiceRunning(true)
 
         startObservingState()
@@ -190,7 +197,10 @@ class ShakeService : Service() {
             if (newState != null) {
                 stateBus.markTriggered(SystemClock.elapsedRealtime())
                 if (latestSettings.vibrateOnToggle) {
-                    vibrationHelper.vibrateForTorchState(newState)
+                    vibrationHelper.vibrateForTorchState(
+                        isNowOn = newState,
+                        intensity = latestSettings.hapticIntensity
+                    )
                 }
             }
         } finally {

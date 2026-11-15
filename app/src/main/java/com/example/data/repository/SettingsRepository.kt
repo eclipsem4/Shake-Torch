@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.example.domain.model.AppThemeMode
 import com.example.domain.model.GestureMode
+import com.example.domain.model.HapticIntensity
 import com.example.domain.model.SamplingRateOption
 import com.example.domain.model.ShakeSettings
 import java.io.IOException
@@ -30,6 +31,7 @@ class SettingsRepository @Inject constructor(
         val COOLDOWN_MILLIS = longPreferencesKey("cooldown_millis")
         val START_ON_BOOT = booleanPreferencesKey("start_on_boot")
         val VIBRATE_ON_TOGGLE = booleanPreferencesKey("vibrate_on_toggle")
+        val HAPTIC_INTENSITY = stringPreferencesKey("haptic_intensity")
         val PAUSE_DURING_CALLS = booleanPreferencesKey("pause_during_calls")
         val BATTERY_SAVER_ENABLED = booleanPreferencesKey("battery_saver_enabled")
         val BATTERY_THRESHOLD_PERCENT = intPreferencesKey("battery_threshold_percent")
@@ -55,6 +57,9 @@ class SettingsRepository @Inject constructor(
                 cooldownMillis = (prefs[Keys.COOLDOWN_MILLIS] ?: 1500L).coerceIn(500L, 5000L),
                 startOnBoot = prefs[Keys.START_ON_BOOT] ?: false,
                 vibrateOnToggle = prefs[Keys.VIBRATE_ON_TOGGLE] ?: true,
+                hapticIntensity = prefs[Keys.HAPTIC_INTENSITY]?.let {
+                    runCatching { HapticIntensity.valueOf(it) }.getOrNull()
+                } ?: HapticIntensity.MEDIUM,
                 pauseDuringCalls = prefs[Keys.PAUSE_DURING_CALLS] ?: true,
                 batterySaverEnabled = prefs[Keys.BATTERY_SAVER_ENABLED] ?: false,
                 batteryThresholdPercent = (prefs[Keys.BATTERY_THRESHOLD_PERCENT] ?: 15).coerceIn(5, 50),
@@ -63,7 +68,7 @@ class SettingsRepository @Inject constructor(
                 } ?: SamplingRateOption.NORMAL,
                 themeMode = prefs[Keys.THEME_MODE]?.let {
                     runCatching { AppThemeMode.valueOf(it) }.getOrNull()
-                } ?: AppThemeMode.SYSTEM,
+                } ?: AppThemeMode.DARK,
                 onboardingCompleted = prefs[Keys.ONBOARDING_COMPLETED] ?: false
             )
         }
@@ -86,6 +91,10 @@ class SettingsRepository @Inject constructor(
 
     suspend fun setVibrateOnToggle(enabled: Boolean) {
         dataStore.edit { it[Keys.VIBRATE_ON_TOGGLE] = enabled }
+    }
+
+    suspend fun setHapticIntensity(intensity: HapticIntensity) {
+        dataStore.edit { it[Keys.HAPTIC_INTENSITY] = intensity.name }
     }
 
     suspend fun setPauseDuringCalls(enabled: Boolean) {

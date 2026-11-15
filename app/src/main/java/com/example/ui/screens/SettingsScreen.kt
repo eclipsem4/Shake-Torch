@@ -1,18 +1,25 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -33,10 +40,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -46,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.domain.model.AppThemeMode
 import com.example.domain.model.GestureMode
+import com.example.domain.model.HapticIntensity
 import com.example.domain.model.SamplingRateOption
 import com.example.ui.components.GlassPillSwitch
 import com.example.ui.components.GlassSlider
@@ -62,6 +75,7 @@ fun SettingsScreen(
     onGestureModeChange: (GestureMode) -> Unit,
     onCooldownChange: (Long) -> Unit,
     onVibrateChange: (Boolean) -> Unit,
+    onHapticIntensityChange: (HapticIntensity) -> Unit,
     onPauseDuringCallsChange: (Boolean) -> Unit,
     onRequestPhonePermission: () -> Unit,
     onStartOnBootChange: (Boolean) -> Unit,
@@ -239,6 +253,27 @@ fun SettingsScreen(
                         testTag = "vibrate_switch"
                     )
 
+                    AnimatedVisibility(visible = settings.vibrateOnToggle) {
+                        Column(modifier = Modifier.padding(top = 14.dp)) {
+                            Text(
+                                text = stringResource(R.string.settings_haptic_intensity_title),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = palette.textPrimary
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            GlassSegmentedSelector(
+                                options = listOf(
+                                    HapticIntensity.LIGHT to stringResource(R.string.settings_haptic_light),
+                                    HapticIntensity.MEDIUM to stringResource(R.string.settings_haptic_medium),
+                                    HapticIntensity.STRONG to stringResource(R.string.settings_haptic_strong)
+                                ),
+                                selected = settings.hapticIntensity,
+                                onSelect = onHapticIntensityChange,
+                                testTagPrefix = "haptic_intensity"
+                            )
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(16.dp))
 
                     SettingSwitchRow(
@@ -381,7 +416,6 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(10.dp))
                     GlassSegmentedSelector(
                         options = listOf(
-                            AppThemeMode.SYSTEM to stringResource(R.string.settings_theme_system),
                             AppThemeMode.DARK to stringResource(R.string.settings_theme_dark),
                             AppThemeMode.LIGHT to stringResource(R.string.settings_theme_light)
                         ),
@@ -507,40 +541,91 @@ private fun <T> GlassSegmentedSelector(
     testTagPrefix: String
 ) {
     val palette = LocalGlassPalette.current
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    val selectedIndex = options.indexOfFirst { it.first == selected }.coerceAtLeast(0)
+
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
+            .height(56.dp)
+            .alpha(if (enabled) 1f else 0.55f)
             .clip(RoundedCornerShape(18.dp))
             .background(palette.textPrimary.copy(alpha = 0.07f))
+            .border(
+                width = 1.dp,
+                color = palette.glassBorderTrailing.copy(alpha = 0.45f),
+                shape = RoundedCornerShape(18.dp)
+            )
             .padding(4.dp)
     ) {
-        options.forEachIndexed { index, (option, label) ->
-            val isSelected = option == selected
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .weight(1f)
-                    .minimumInteractiveComponentSize()
-                    .testTag("${testTagPrefix}_$index")
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(
-                        if (isSelected) palette.accentCool.copy(alpha = 0.24f) else Color.Transparent
+        val segmentWidth = maxWidth / options.size.coerceAtLeast(1)
+        val indicatorOffset by animateDpAsState(
+            targetValue = segmentWidth * selectedIndex,
+            animationSpec = spring(dampingRatio = 0.72f, stiffness = 420f),
+            label = "segmentIndicatorOffset"
+        )
+
+        // Sliding Liquid Glass capsule indicator
+        Box(
+            modifier = Modifier
+                .offset(x = indicatorOffset)
+                .width(segmentWidth)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(14.dp))
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            palette.accentCool.copy(alpha = 0.30f),
+                            palette.accentCool.copy(alpha = 0.14f)
+                        )
                     )
-                    .border(
-                        width = if (isSelected) 1.dp else 0.dp,
-                        color = if (isSelected) palette.accentCool.copy(alpha = 0.55f) else Color.Transparent,
-                        shape = RoundedCornerShape(14.dp)
-                    )
-                    .clickable(enabled = enabled, onClick = { onSelect(option) })
-                    .padding(horizontal = 8.dp, vertical = 10.dp)
-            ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = if (isSelected) palette.textPrimary else palette.textSecondary,
-                    maxLines = 1
                 )
+                .border(
+                    width = 1.dp,
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            palette.accentCool.copy(alpha = 0.65f),
+                            palette.glassBorderHighlight.copy(alpha = 0.35f)
+                        )
+                    ),
+                    shape = RoundedCornerShape(14.dp)
+                )
+        )
+
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            options.forEachIndexed { index, (option, label) ->
+                val isSelected = option == selected
+                val textColor by animateColorAsState(
+                    targetValue = if (isSelected) palette.textPrimary else palette.textSecondary,
+                    animationSpec = spring(stiffness = 400f),
+                    label = "segmentTextColor"
+                )
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .minimumInteractiveComponentSize()
+                        .testTag("${testTagPrefix}_$index")
+                        .clip(RoundedCornerShape(14.dp))
+                        .clickable(
+                            enabled = enabled,
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = ripple(bounded = true),
+                            onClick = { onSelect(option) }
+                        )
+                        .padding(horizontal = 8.dp)
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = textColor,
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                        maxLines = 1
+                    )
+                }
             }
         }
     }

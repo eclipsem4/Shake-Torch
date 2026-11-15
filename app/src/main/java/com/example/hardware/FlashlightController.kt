@@ -48,6 +48,7 @@ class FlashlightController @Inject constructor(
         refreshHardwareAndRegisterCallback()
     }
 
+    @Synchronized
     fun refreshHardwareAndRegisterCallback(): Boolean {
         val foundId = findBackFlashCameraId()
         torchCameraId = foundId
@@ -77,11 +78,13 @@ class FlashlightController @Inject constructor(
      * Toggles the flashlight and returns the resulting torch state (true = ON, false = OFF),
      * or null if no flash hardware is available or camera access failed.
      */
+    @Synchronized
     fun toggleTorch(): Boolean? {
         val targetState = !currentTorchOn
         return if (setTorch(targetState)) targetState else null
     }
 
+    @Synchronized
     fun setTorch(enabled: Boolean): Boolean {
         val id = torchCameraId ?: findBackFlashCameraId()?.also {
             torchCameraId = it
@@ -91,6 +94,13 @@ class FlashlightController @Inject constructor(
         if (id == null) {
             stateBus.setHasFlashUnit(false)
             return false
+        }
+
+        if (!callbackRegistered) {
+            runCatching {
+                cameraManager.registerTorchCallback(torchCallback, mainHandler)
+                callbackRegistered = true
+            }
         }
 
         return try {

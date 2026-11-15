@@ -26,6 +26,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.domain.model.AppThemeMode
 import com.example.domain.model.GestureMode
+import com.example.domain.model.HapticIntensity
 import com.example.domain.model.SamplingRateOption
 import com.example.ui.components.AuroraGlassBackground
 import com.example.ui.components.BottomNavTab
@@ -60,6 +61,7 @@ fun ShakeLightRoot(
     onGestureModeChange: (GestureMode) -> Unit,
     onCooldownChange: (Long) -> Unit,
     onVibrateChange: (Boolean) -> Unit,
+    onHapticIntensityChange: (HapticIntensity) -> Unit,
     onPauseDuringCallsChange: (Boolean) -> Unit,
     onStartOnBootChange: (Boolean) -> Unit,
     onBatterySaverChange: (Boolean) -> Unit,
@@ -147,6 +149,7 @@ fun ShakeLightRoot(
                         onResetPeak = onResetPeak,
                         onSensitivityChange = onSensitivityChange,
                         onSetMeterPreviewActive = onSetMeterPreviewActive,
+                        onThemeModeChange = onThemeModeChange,
                         bottomContentPadding = bottomContentPadding
                     )
                 }
@@ -158,6 +161,7 @@ fun ShakeLightRoot(
                         onGestureModeChange = onGestureModeChange,
                         onCooldownChange = onCooldownChange,
                         onVibrateChange = onVibrateChange,
+                        onHapticIntensityChange = onHapticIntensityChange,
                         onPauseDuringCallsChange = onPauseDuringCallsChange,
                         onRequestPhonePermission = onRequestPhonePermission,
                         onStartOnBootChange = onStartOnBootChange,

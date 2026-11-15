@@ -54,6 +54,8 @@ class BootReceiver : BroadcastReceiver() {
                         // Gracefully ignore if OS/OEM blocks background FGS start on this device.
                     } catch (_: SecurityException) {
                         // Gracefully ignore missing runtime prerequisites.
+                    } catch (_: IllegalStateException) {
+                        // Gracefully ignore if OS rejects background service start.
                     }
                 }
             } finally {

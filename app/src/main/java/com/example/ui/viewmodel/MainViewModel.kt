@@ -12,12 +12,14 @@ import com.example.data.repository.ServiceStateBus
 import com.example.data.repository.SettingsRepository
 import com.example.domain.model.AppThemeMode
 import com.example.domain.model.GestureMode
+import com.example.domain.model.HapticIntensity
 import com.example.domain.model.PermissionStatus
 import com.example.domain.model.SamplingRateOption
 import com.example.domain.model.ServiceStateSnapshot
 import com.example.domain.model.ShakeSettings
 import com.example.domain.model.TiltOffset
 import com.example.hardware.BatteryMonitor
+import com.example.hardware.CallStateMonitor
 import com.example.hardware.FlashlightController
 import com.example.hardware.ShakeDetector
 import com.example.hardware.TiltSensorObserver
@@ -49,6 +51,7 @@ class MainViewModel @Inject constructor(
     private val flashlightController: FlashlightController,
     private val vibrationHelper: VibrationHelper,
     private val batteryMonitor: BatteryMonitor,
+    private val callStateMonitor: CallStateMonitor,
     private val tiltSensorObserver: TiltSensorObserver,
     sensorManager: SensorManager
 ) : ViewModel() {
@@ -87,17 +90,15 @@ class MainViewModel @Inject constructor(
         val battery = batteryMonitor.refreshBatterySnapshot()
         stateBus.setBatteryStatus(battery.levelPercent, battery.isCharging)
         permissionsFlow.value = readPermissionSnapshot()
+        if (stateBus.state.value.isServiceRunning && uiState.value.settings.pauseDuringCalls) {
+            callStateMonitor.startMonitoring()
+        }
     }
 
     fun setMeterPreviewActive(active: Boolean) {
         if (active && !stateBus.state.value.isServiceRunning) {
             if (!previewActive) {
-                previewDetector.updateConfig(
-                    sensitivity = uiState.value.settings.sensitivity,
-                    gestureMode = uiState.value.settings.gestureMode,
-                    cooldownMillis = uiState.value.settings.cooldownMillis,
-                    samplingRate = SamplingRateOption.UI
-                )
+                syncPreviewDetectorConfig()
                 previewActive = previewDetector.start(object : ShakeDetector.Listener {
                     override fun onMagnitudeChanged(magnitudeG: Float) {
                         if (!stateBus.state.value.isServiceRunning) {
@@ -112,8 +113,22 @@ class MainViewModel @Inject constructor(
             if (previewActive) {
                 previewDetector.stop()
                 previewActive = false
+                if (!stateBus.state.value.isServiceRunning) {
+                    stateBus.resetPeakMagnitude()
+                }
             }
         }
+    }
+
+    private fun syncPreviewDetectorConfig(
+        settings: ShakeSettings = uiState.value.settings
+    ) {
+        previewDetector.updateConfig(
+            sensitivity = settings.sensitivity,
+            gestureMode = settings.gestureMode,
+            cooldownMillis = settings.cooldownMillis,
+            samplingRate = SamplingRateOption.UI
+        )
     }
 
     fun toggleShakeService() {
@@ -133,7 +148,10 @@ class MainViewModel @Inject constructor(
     fun toggleManualTorch() {
         val newState = flashlightController.toggleTorch()
         if (newState != null && uiState.value.settings.vibrateOnToggle) {
-            vibrationHelper.vibrateForTorchState(newState)
+            vibrationHelper.vibrateForTorchState(
+                isNowOn = newState,
+                intensity = uiState.value.settings.hapticIntensity
+            )
         }
     }
 
@@ -142,14 +160,23 @@ class MainViewModel @Inject constructor(
     }
 
     fun setSensitivity(value: Int) {
+        if (previewActive) {
+            syncPreviewDetectorConfig(uiState.value.settings.copy(sensitivity = value))
+        }
         viewModelScope.launch { settingsRepository.setSensitivity(value) }
     }
 
     fun setGestureMode(mode: GestureMode) {
+        if (previewActive) {
+            syncPreviewDetectorConfig(uiState.value.settings.copy(gestureMode = mode))
+        }
         viewModelScope.launch { settingsRepository.setGestureMode(mode) }
     }
 
     fun setCooldownMillis(millis: Long) {
+        if (previewActive) {
+            syncPreviewDetectorConfig(uiState.value.settings.copy(cooldownMillis = millis))
+        }
         viewModelScope.launch { settingsRepository.setCooldownMillis(millis) }
     }
 
@@ -159,6 +186,16 @@ class MainViewModel @Inject constructor(
 
     fun setVibrateOnToggle(enabled: Boolean) {
         viewModelScope.launch { settingsRepository.setVibrateOnToggle(enabled) }
+        if (enabled) {
+            vibrationHelper.previewIntensity(uiState.value.settings.hapticIntensity)
+        }
+    }
+
+    fun setHapticIntensity(intensity: HapticIntensity) {
+        viewModelScope.launch { settingsRepository.setHapticIntensity(intensity) }
+        if (uiState.value.settings.vibrateOnToggle) {
+            vibrationHelper.previewIntensity(intensity)
+        }
     }
 
     fun setPauseDuringCalls(enabled: Boolean) {

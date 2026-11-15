@@ -1,7 +1,9 @@
 package com.example.ui.components
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -12,7 +14,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,6 +24,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -66,22 +68,21 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageShader
-import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.TileMode
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -94,45 +95,6 @@ import com.example.ui.theme.LocalGlassPalette
 import com.example.ui.theme.TorchAmber
 import com.example.ui.theme.TorchGold
 import kotlin.math.roundToInt
-import kotlin.random.Random
-
-/**
- * Builds a seamless 128x128 tileable procedural grain ImageShader wrapped in a ShaderBrush
- * for authentic frosted-glass micro-texture without per-frame allocation.
- */
-@Composable
-private fun rememberFrostedGrainShaderBrush(isDark: Boolean): ShaderBrush {
-    return remember(isDark) {
-        val tileSize = 128
-        val pixels = IntArray(tileSize * tileSize)
-        val rng = Random(20261115)
-        for (i in pixels.indices) {
-            val roll = rng.nextFloat()
-            pixels[i] = if (roll < 0.42f) {
-                val alpha = if (isDark) rng.nextInt(4, 18) else rng.nextInt(3, 13)
-                android.graphics.Color.argb(alpha, 255, 255, 255)
-            } else if (roll < 0.72f) {
-                val alpha = if (isDark) rng.nextInt(4, 15) else rng.nextInt(4, 14)
-                android.graphics.Color.argb(alpha, 12, 18, 32)
-            } else {
-                android.graphics.Color.TRANSPARENT
-            }
-        }
-        val bitmap = android.graphics.Bitmap.createBitmap(
-            pixels,
-            tileSize,
-            tileSize,
-            android.graphics.Bitmap.Config.ARGB_8888
-        )
-        ShaderBrush(
-            ImageShader(
-                image = bitmap.asImageBitmap(),
-                tileModeX = TileMode.Repeated,
-                tileModeY = TileMode.Repeated
-            )
-        )
-    }
-}
 
 /**
  * Animated aurora mesh background using real API 31+ Modifier.blur (RenderEffect).
@@ -177,49 +139,46 @@ fun AuroraGlassBackground(
             .fillMaxSize()
             .background(palette.backdropBase)
     ) {
-        // Real RenderEffect blur layer for luminous aurora mesh orbs
+        // Clear, luminous ambient light backdrop with real API 31+ RenderEffect blur
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .blur(radius = 84.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)
+                .blur(radius = 96.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val w = size.width
                 val h = size.height
-                val tiltPxX = tilt.x * 48f
-                val tiltPxY = tilt.y * 48f
+                val tiltPxX = tilt.x * 52f
+                val tiltPxY = tilt.y * 52f
 
-                // Top-left sapphire orb
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(palette.auroraOrbPrimary, Color.Transparent),
-                        center = Offset(w * (0.24f + driftA) + tiltPxX, h * 0.20f + tiltPxY),
-                        radius = w * 0.68f
+                        center = Offset(w * (0.22f + driftA) + tiltPxX, h * 0.18f + tiltPxY),
+                        radius = w * 0.64f
                     ),
-                    center = Offset(w * (0.24f + driftA) + tiltPxX, h * 0.20f + tiltPxY),
-                    radius = w * 0.68f
+                    center = Offset(w * (0.22f + driftA) + tiltPxX, h * 0.18f + tiltPxY),
+                    radius = w * 0.64f
                 )
 
-                // Mid-right violet orb
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(palette.auroraOrbSecondary, Color.Transparent),
                         center = Offset(w * (0.82f + driftB) - tiltPxX, h * 0.44f + tiltPxY),
-                        radius = w * 0.64f
+                        radius = w * 0.58f
                     ),
                     center = Offset(w * (0.82f + driftB) - tiltPxX, h * 0.44f + tiltPxY),
-                    radius = w * 0.64f
+                    radius = w * 0.58f
                 )
 
-                // Bottom teal orb
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(palette.auroraOrbTertiary, Color.Transparent),
-                        center = Offset(w * (0.35f - driftB) + tiltPxX, h * 0.82f - tiltPxY),
-                        radius = w * 0.70f
+                        center = Offset(w * (0.35f - driftB) + tiltPxX, h * 0.84f - tiltPxY),
+                        radius = w * 0.62f
                     ),
-                    center = Offset(w * (0.35f - driftB) + tiltPxX, h * 0.82f - tiltPxY),
-                    radius = w * 0.70f
+                    center = Offset(w * (0.35f - driftB) + tiltPxX, h * 0.84f - tiltPxY),
+                    radius = w * 0.62f
                 )
 
                 // Warm amber glow when flashlight is ON
@@ -231,32 +190,13 @@ fun AuroraGlassBackground(
                                 Color.Transparent
                             ),
                             center = Offset(w * 0.5f + tiltPxX * 0.6f, h * 0.36f + tiltPxY * 0.6f),
-                            radius = w * 0.72f
+                            radius = w * 0.68f
                         ),
                         center = Offset(w * 0.5f + tiltPxX * 0.6f, h * 0.36f + tiltPxY * 0.6f),
-                        radius = w * 0.72f
+                        radius = w * 0.68f
                     )
                 }
             }
-        }
-
-        // Subtle frosted background emblem from user-supplied flashlight icon
-        Image(
-            painter = painterResource(id = R.drawable.user_pfp_flashlight),
-            contentDescription = null,
-            contentScale = ContentScale.Fit,
-            modifier = Modifier
-                .align(Alignment.Center)
-                .size(280.dp)
-                .offset(x = (tilt.x * 16f).dp, y = (tilt.y * 16f).dp)
-                .blur(10.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)
-                .alpha(if (palette.isDark) 0.14f else 0.11f)
-        )
-
-        // Procedural frosted-grain Canvas shader overlay over the aurora mesh gradient
-        val grainShaderBrush = rememberFrostedGrainShaderBrush(isDark = palette.isDark)
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            drawRect(brush = grainShaderBrush)
         }
 
         content()
@@ -266,8 +206,8 @@ fun AuroraGlassBackground(
 /**
  * Translucent Liquid Glass card featuring:
  * - Real Modifier.blur inner caustic sheen layer (keeping foreground text sharp)
- * - Diagonal specular refraction fill
- * - Tilt-responsive gradient border (bright top-left, subtle bottom-right)
+ * - Subtle animated specular light sweep + tilt-reactive refraction highlight
+ * - Dual-layer glass bevel border (crisp top-left catchlight + delicate inner rim)
  */
 @Composable
 fun LiquidGlassCard(
@@ -283,28 +223,43 @@ fun LiquidGlassCard(
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (pressed && onClick != null) 0.985f else 1f,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 450f),
+        targetValue = if (pressed && onClick != null) 0.982f else 1f,
+        animationSpec = spring(dampingRatio = 0.65f, stiffness = 460f),
         label = "cardScale"
     )
 
-    val shiftX = (tilt.x * 0.25f).coerceIn(-0.25f, 0.25f)
-    val shiftY = (tilt.y * 0.25f).coerceIn(-0.25f, 0.25f)
-
-    val surfaceBrush = Brush.linearGradient(
-        colors = listOf(palette.glassFillTop, palette.glassFillBottom),
-        start = Offset(0f, 0f),
-        end = Offset(900f + shiftX * 300f, 900f + shiftY * 300f)
+    val sheenTransition = rememberInfiniteTransition(label = "cardSheen")
+    val sheenPhase by sheenTransition.animateFloat(
+        initialValue = -0.35f,
+        targetValue = 1.35f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(7500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "sheenPhase"
     )
 
-    val borderBrush = Brush.linearGradient(
+    val shiftX = (tilt.x * 0.28f).coerceIn(-0.28f, 0.28f)
+    val shiftY = (tilt.y * 0.28f).coerceIn(-0.28f, 0.28f)
+
+    val surfaceBrush = Brush.linearGradient(
+        colors = listOf(
+            palette.glassFillTop,
+            palette.glassFillBottom.copy(alpha = (palette.glassFillBottom.alpha + 0.03f).coerceAtMost(1f)),
+            palette.glassFillBottom
+        ),
+        start = Offset(0f, 0f),
+        end = Offset(900f + shiftX * 320f, 900f + shiftY * 320f)
+    )
+
+    val outerBorderBrush = Brush.linearGradient(
         colors = listOf(
             palette.glassBorderHighlight,
-            palette.glassBorderTrailing.copy(alpha = 0.16f),
-            palette.glassBorderTrailing
+            palette.glassBorderTrailing.copy(alpha = 0.18f),
+            palette.glassBorderHighlight.copy(alpha = 0.22f)
         ),
-        start = Offset(0f + shiftX * 200f, 0f + shiftY * 200f),
-        end = Offset(800f, 800f)
+        start = Offset(0f + shiftX * 220f, 0f + shiftY * 220f),
+        end = Offset(820f, 820f)
     )
 
     Box(
@@ -324,43 +279,58 @@ fun LiquidGlassCard(
                 }
             )
     ) {
-        // Blurred internal specular highlight layer (API 31+ RenderEffect)
+        // Blurred internal specular & caustic glow layer (API 31+ RenderEffect)
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .clip(shape)
-                .blur(26.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
+                .blur(28.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
-                val glowColor = accentGlow?.copy(alpha = 0.24f) ?: palette.glassInnerGlow
+                val glowColor = accentGlow?.copy(alpha = 0.26f) ?: palette.glassInnerGlow
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(glowColor, Color.Transparent),
                         center = Offset(
-                            x = size.width * (0.20f + shiftX),
-                            y = size.height * (0.12f + shiftY)
+                            x = size.width * (0.22f + shiftX),
+                            y = size.height * (0.14f + shiftY)
                         ),
-                        radius = size.maxDimension * 0.75f
+                        radius = size.maxDimension * 0.78f
                     ),
-                    radius = size.maxDimension * 0.75f
+                    radius = size.maxDimension * 0.78f
+                )
+
+                // Moving subtle specular light reflection band
+                val sweepCenter = Offset(
+                    x = size.width * (sheenPhase + shiftX * 0.4f),
+                    y = size.height * (0.35f + shiftY * 0.3f)
+                )
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = if (palette.isDark) 0.09f else 0.26f),
+                            Color.Transparent
+                        ),
+                        center = sweepCenter,
+                        radius = size.maxDimension * 0.55f
+                    ),
+                    center = sweepCenter,
+                    radius = size.maxDimension * 0.55f
                 )
             }
         }
 
-        // Crisp specular gradient border + subtle frosted surface micro-grain
-        val cardGrainBrush = rememberFrostedGrainShaderBrush(isDark = palette.isDark)
-        Canvas(
-            modifier = Modifier
-                .matchParentSize()
-                .clip(shape)
-        ) {
-            drawRect(brush = cardGrainBrush, alpha = 0.45f)
-        }
-
+        // Crisp dual-rim glass border
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .border(width = 1.dp, brush = borderBrush, shape = shape)
+                .border(width = 1.15.dp, brush = outerBorderBrush, shape = shape)
+                .padding(1.dp)
+                .border(
+                    width = 0.6.dp,
+                    color = Color.White.copy(alpha = if (palette.isDark) 0.10f else 0.35f),
+                    shape = RoundedCornerShape((cornerRadius - 1.dp).coerceAtLeast(1.dp))
+                )
         )
 
         // Unblurred foreground content
@@ -371,8 +341,8 @@ fun LiquidGlassCard(
 }
 
 /**
- * Large central morphing Liquid Glass power orb that glows warm amber when the flashlight is ON,
- * cool ice-blue when ShakeLight is armed, and frosted neutral when inactive.
+ * Large central morphing Liquid Glass power orb with expanding sonar ripples,
+ * rotating liquid specular rim light, and warm amber glow when the flashlight is ON.
  */
 @Composable
 fun MorphingGlassPowerOrb(
@@ -386,21 +356,44 @@ fun MorphingGlassPowerOrb(
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
 
-    val infiniteTransition = rememberInfiniteTransition(label = "orbPulse")
+    val infiniteTransition = rememberInfiniteTransition(label = "orbAnimations")
     val pulse by infiniteTransition.animateFloat(
-        initialValue = 0.96f,
-        targetValue = 1.04f,
+        initialValue = 0.95f,
+        targetValue = 1.05f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2200, easing = FastOutSlowInEasing),
+            animation = tween(2100, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "pulse"
     )
+    val ripplePhase by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2600, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "ripplePhase"
+    )
+    val rimAngle by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(6500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rimAngle"
+    )
 
     val pressScale by animateFloatAsState(
-        targetValue = if (pressed) 0.93f else 1f,
-        animationSpec = spring(dampingRatio = 0.58f, stiffness = 420f),
+        targetValue = if (pressed) 0.91f else 1f,
+        animationSpec = spring(dampingRatio = 0.52f, stiffness = 440f),
         label = "orbPress"
+    )
+    val iconScale by animateFloatAsState(
+        targetValue = if (isTorchOn) 1.10f else if (isServiceRunning) 1.03f else 0.96f,
+        animationSpec = spring(dampingRatio = 0.55f, stiffness = 360f),
+        label = "orbIconScale"
     )
 
     val glowColor by animateColorAsState(
@@ -415,8 +408,8 @@ fun MorphingGlassPowerOrb(
 
     val ringBorderColor by animateColorAsState(
         targetValue = when {
-            isTorchOn -> TorchGold.copy(alpha = 0.92f)
-            isServiceRunning -> palette.accentCool.copy(alpha = 0.85f)
+            isTorchOn -> TorchGold.copy(alpha = 0.95f)
+            isServiceRunning -> palette.accentCool.copy(alpha = 0.90f)
             else -> palette.glassBorderHighlight
         },
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
@@ -425,11 +418,11 @@ fun MorphingGlassPowerOrb(
 
     val cornerRadius by animateDpAsState(
         targetValue = when {
-            isTorchOn -> 56.dp
-            isServiceRunning -> 88.dp
+            isTorchOn -> 54.dp
+            isServiceRunning -> 86.dp
             else -> 112.dp
         },
-        animationSpec = spring(dampingRatio = 0.65f, stiffness = 320f),
+        animationSpec = spring(dampingRatio = 0.62f, stiffness = 300f),
         label = "orbMorphRadius"
     )
 
@@ -439,19 +432,41 @@ fun MorphingGlassPowerOrb(
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .size(236.dp)
+            .size(248.dp)
             .scale(pressScale)
     ) {
+        // Expanding concentric sonar ripple rings when armed or lit
+        if (isServiceRunning || isTorchOn) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val baseRadius = 98.dp.toPx()
+                val maxExpand = 26.dp.toPx()
+                listOf(ripplePhase, (ripplePhase + 0.5f) % 1f).forEach { phase ->
+                    val alpha = (1f - phase) * (if (isTorchOn) 0.42f else 0.28f)
+                    val radius = baseRadius + phase * maxExpand
+                    drawRoundRect(
+                        color = glowColor.copy(alpha = alpha),
+                        topLeft = Offset(
+                            (size.width - radius * 2f) / 2f,
+                            (size.height - radius * 2f) / 2f
+                        ),
+                        size = Size(radius * 2f, radius * 2f),
+                        cornerRadius = CornerRadius(cornerRadius.toPx(), cornerRadius.toPx()),
+                        style = Stroke(width = 1.6.dp.toPx())
+                    )
+                }
+            }
+        }
+
         // Real blurred outer aura halo
         Box(
             modifier = Modifier
-                .size(216.dp)
-                .scale(if (isServiceRunning || isTorchOn) pulse else 0.92f)
-                .blur(34.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)
+                .size(218.dp)
+                .scale(if (isServiceRunning || isTorchOn) pulse else 0.90f)
+                .blur(36.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)
                 .background(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            glowColor.copy(alpha = if (isTorchOn) 0.65f else if (isServiceRunning) 0.45f else 0.16f),
+                            glowColor.copy(alpha = if (isTorchOn) 0.68f else if (isServiceRunning) 0.46f else 0.14f),
                             Color.Transparent
                         )
                     ),
@@ -463,14 +478,14 @@ fun MorphingGlassPowerOrb(
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(196.dp)
+                .size(198.dp)
                 .testTag("power_orb_button")
                 .semantics { contentDescription = orbCd }
                 .clip(orbShape)
                 .background(
                     brush = Brush.linearGradient(
                         colors = listOf(
-                            glowColor.copy(alpha = if (isTorchOn) 0.36f else if (isServiceRunning) 0.24f else 0.12f),
+                            glowColor.copy(alpha = if (isTorchOn) 0.36f else if (isServiceRunning) 0.24f else 0.13f),
                             palette.glassFillBottom
                         ),
                         start = Offset(0f + tilt.x * 80f, 0f + tilt.y * 80f),
@@ -479,7 +494,7 @@ fun MorphingGlassPowerOrb(
                     shape = orbShape
                 )
                 .border(
-                    width = 1.6.dp,
+                    width = 1.8.dp,
                     brush = Brush.linearGradient(
                         colors = listOf(
                             ringBorderColor,
@@ -506,15 +521,39 @@ fun MorphingGlassPowerOrb(
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                Color.White.copy(alpha = if (isTorchOn) 0.45f else 0.25f),
+                                Color.White.copy(alpha = if (isTorchOn) 0.48f else 0.28f),
                                 Color.Transparent
                             ),
                             center = Offset(
-                                size.width * (0.32f + tilt.x * 0.14f),
-                                size.height * (0.24f + tilt.y * 0.14f)
+                                size.width * (0.30f + tilt.x * 0.15f),
+                                size.height * (0.22f + tilt.y * 0.15f)
                             ),
-                            radius = size.width * 0.55f
+                            radius = size.width * 0.56f
                         )
+                    )
+                }
+            }
+
+            // Rotating liquid specular highlight along the inner rim
+            Canvas(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clip(orbShape)
+            ) {
+                rotate(degrees = rimAngle) {
+                    drawRoundRect(
+                        brush = Brush.sweepGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.White.copy(alpha = if (isTorchOn || isServiceRunning) 0.55f else 0.25f),
+                                Color.Transparent,
+                                Color.Transparent
+                            )
+                        ),
+                        topLeft = Offset(1.dp.toPx(), 1.dp.toPx()),
+                        size = Size(size.width - 2.dp.toPx(), size.height - 2.dp.toPx()),
+                        cornerRadius = CornerRadius(cornerRadius.toPx(), cornerRadius.toPx()),
+                        style = Stroke(width = 1.6.dp.toPx())
                     )
                 }
             }
@@ -524,12 +563,20 @@ fun MorphingGlassPowerOrb(
                 verticalArrangement = Arrangement.Center,
                 modifier = Modifier.padding(16.dp)
             ) {
-                Icon(
-                    imageVector = if (isTorchOn) Icons.Rounded.FlashlightOn else Icons.Rounded.FlashlightOff,
-                    contentDescription = stringResource(R.string.cd_flashlight_icon),
-                    tint = if (isTorchOn) TorchAmber else if (isServiceRunning) palette.accentCool else palette.textPrimary,
-                    modifier = Modifier.size(54.dp)
-                )
+                Crossfade(
+                    targetState = isTorchOn,
+                    animationSpec = tween(220),
+                    label = "torchIconCrossfade"
+                ) { torchOn ->
+                    Icon(
+                        imageVector = if (torchOn) Icons.Rounded.FlashlightOn else Icons.Rounded.FlashlightOff,
+                        contentDescription = stringResource(R.string.cd_flashlight_icon),
+                        tint = if (torchOn) TorchAmber else if (isServiceRunning) palette.accentCool else palette.textPrimary,
+                        modifier = Modifier
+                            .size(54.dp)
+                            .scale(iconScale)
+                    )
+                }
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
                     text = if (isServiceRunning) "ACTIVE" else "STANDBY",
@@ -577,12 +624,24 @@ fun LiveShakeMeter(
             repeat(historySize) { add(0f) }
         }
     }
+    val latestMagnitudeG by androidx.compose.runtime.rememberUpdatedState(currentMagnitudeG)
 
-    androidx.compose.runtime.LaunchedEffect(currentMagnitudeG) {
-        if (history.size >= historySize) {
-            history.removeAt(0)
+    androidx.compose.runtime.LaunchedEffect(peakMagnitudeG == 0f && currentMagnitudeG == 0f) {
+        if (peakMagnitudeG == 0f && currentMagnitudeG == 0f) {
+            for (i in history.indices) {
+                history[i] = 0f
+            }
         }
-        history.add(currentMagnitudeG.coerceIn(0f, maxG))
+    }
+
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        while (true) {
+            if (history.size >= historySize) {
+                history.removeAt(0)
+            }
+            history.add(latestMagnitudeG.coerceIn(0f, maxG))
+            kotlinx.coroutines.delay(50L)
+        }
     }
 
     val animatedMagnitude by animateFloatAsState(
@@ -817,13 +876,21 @@ fun GlassPillSwitch(
     contentDescriptionText: String? = null
 ) {
     val palette = LocalGlassPalette.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+
+    val thumbWidth by animateDpAsState(
+        targetValue = if (pressed) 34.dp else 28.dp,
+        animationSpec = spring(dampingRatio = 0.62f, stiffness = 500f),
+        label = "switchThumbWidth"
+    )
     val thumbOffset by animateDpAsState(
-        targetValue = if (checked) 22.dp else 2.dp,
-        animationSpec = spring(dampingRatio = 0.68f, stiffness = 460f),
+        targetValue = if (checked) (52.dp - thumbWidth) else 2.dp,
+        animationSpec = spring(dampingRatio = 0.65f, stiffness = 460f),
         label = "switchThumb"
     )
     val trackColor by animateColorAsState(
-        targetValue = if (checked) palette.accentCool.copy(alpha = 0.85f) else palette.textPrimary.copy(alpha = 0.14f),
+        targetValue = if (checked) palette.accentCool.copy(alpha = 0.88f) else palette.textPrimary.copy(alpha = 0.14f),
         animationSpec = spring(stiffness = 380f),
         label = "switchTrack"
     )
@@ -841,7 +908,7 @@ fun GlassPillSwitch(
             .clickable(
                 enabled = enabled,
                 role = Role.Switch,
-                interactionSource = remember { MutableInteractionSource() },
+                interactionSource = interactionSource,
                 indication = null,
                 onClick = { onCheckedChange(!checked) }
             )
@@ -854,20 +921,21 @@ fun GlassPillSwitch(
                 .background(trackColor)
                 .border(
                     width = 1.dp,
-                    color = palette.glassBorderHighlight.copy(alpha = if (checked) 0.8f else 0.4f),
+                    color = palette.glassBorderHighlight.copy(alpha = if (checked) 0.88f else 0.42f),
                     shape = RoundedCornerShape(16.dp)
                 )
         ) {
             Box(
                 modifier = Modifier
                     .offset(x = thumbOffset, y = 2.dp)
-                    .size(28.dp)
-                    .clip(CircleShape)
+                    .width(thumbWidth)
+                    .height(28.dp)
+                    .clip(RoundedCornerShape(14.dp))
                     .background(Color.White)
                     .border(
                         width = 0.75.dp,
-                        color = Color.White.copy(alpha = 0.9f),
-                        shape = CircleShape
+                        color = Color.White.copy(alpha = 0.95f),
+                        shape = RoundedCornerShape(14.dp)
                     )
             )
         }
@@ -891,9 +959,13 @@ fun GlassSlider(
     val activeColor = accentColor ?: palette.accentCool
     val span = (valueRange.endInclusive - valueRange.start).coerceAtLeast(0.001f)
     val fraction = ((value - valueRange.start) / span).coerceIn(0f, 1f)
+    val thumbRadiusDp = 12.dp
+    val thumbRadiusPx = with(LocalDensity.current) { thumbRadiusDp.toPx() }
     var widthPx by remember { mutableFloatStateOf(1f) }
+    val latestOnValueChange by androidx.compose.runtime.rememberUpdatedState(onValueChange)
+    val latestValue by androidx.compose.runtime.rememberUpdatedState(value)
 
-    fun snapAndEmit(rawFraction: Float) {
+    fun snapValue(rawFraction: Float): Float {
         val clamped = rawFraction.coerceIn(0f, 1f)
         val snapped = if (steps > 0) {
             val segments = steps + 1
@@ -901,7 +973,16 @@ fun GlassSlider(
         } else {
             clamped
         }
-        onValueChange(valueRange.start + snapped * span)
+        return valueRange.start + snapped * span
+    }
+
+    fun emitFromPositionX(posX: Float) {
+        val usableWidth = (widthPx - thumbRadiusPx * 2f).coerceAtLeast(1f)
+        val rawFraction = ((posX - thumbRadiusPx) / usableWidth).coerceIn(0f, 1f)
+        val nextValue = snapValue(rawFraction)
+        if (kotlin.math.abs(nextValue - latestValue) > 0.0001f) {
+            latestOnValueChange(nextValue)
+        }
     }
 
     Box(
@@ -913,23 +994,30 @@ fun GlassSlider(
                 if (contentDescriptionText != null) {
                     contentDescription = contentDescriptionText
                 }
-            }
-            .onSizeChanged { widthPx = it.width.toFloat().coerceAtLeast(1f) }
-            .pointerInput(valueRange, steps) {
-                detectTapGestures { offset ->
-                    snapAndEmit(offset.x / widthPx)
+                progressBarRangeInfo = ProgressBarRangeInfo(value, valueRange, steps)
+                setProgress { targetValue ->
+                    val clamped = targetValue.coerceIn(valueRange.start, valueRange.endInclusive)
+                    val snapped = snapValue((clamped - valueRange.start) / span)
+                    latestOnValueChange(snapped)
+                    true
                 }
             }
-            .pointerInput(valueRange, steps) {
+            .onSizeChanged { widthPx = it.width.toFloat().coerceAtLeast(1f) }
+            .pointerInput(valueRange, steps, thumbRadiusPx) {
+                detectTapGestures { offset ->
+                    emitFromPositionX(offset.x)
+                }
+            }
+            .pointerInput(valueRange, steps, thumbRadiusPx) {
                 detectHorizontalDragGestures { change, _ ->
                     change.consume()
-                    snapAndEmit(change.position.x / widthPx)
+                    emitFromPositionX(change.position.x)
                 }
             }
     ) {
         Canvas(modifier = Modifier.fillMaxWidth().height(28.dp)) {
             val trackHeight = 10.dp.toPx()
-            val thumbRadius = 12.dp.toPx()
+            val thumbRadius = thumbRadiusDp.toPx()
             val usableWidth = (size.width - thumbRadius * 2f).coerceAtLeast(1f)
             val centerY = size.height / 2f
             val thumbX = thumbRadius + usableWidth * fraction
@@ -951,6 +1039,25 @@ fun GlassSlider(
                 size = Size((thumbX - thumbRadius).coerceAtLeast(0f), trackHeight),
                 cornerRadius = CornerRadius(trackHeight / 2f, trackHeight / 2f)
             )
+
+            // Subtle step tick marks along the track when discrete steps are enabled
+            if (steps > 0) {
+                val segments = steps + 1
+                for (i in 0..segments) {
+                    val tickFraction = i / segments.toFloat()
+                    val tickX = thumbRadius + usableWidth * tickFraction
+                    val isCovered = tickFraction <= fraction
+                    drawCircle(
+                        color = if (isCovered) {
+                            Color.White.copy(alpha = 0.65f)
+                        } else {
+                            palette.textSecondary.copy(alpha = 0.38f)
+                        },
+                        radius = 1.6.dp.toPx(),
+                        center = Offset(tickX, centerY)
+                    )
+                }
+            }
 
             // Soft outer glow around thumb
             drawCircle(
@@ -996,7 +1103,8 @@ enum class BottomNavTab(
 }
 
 /**
- * Floating Liquid Glass bottom navigation pill respecting WindowInsets.navigationBars.
+ * Floating Liquid Glass bottom navigation pill with a spring-sliding glass capsule indicator,
+ * frosted inner refraction, and proper WindowInsets.navigationBars padding.
  */
 @Composable
 fun FloatingGlassNavBar(
@@ -1007,6 +1115,7 @@ fun FloatingGlassNavBar(
     val palette = LocalGlassPalette.current
     val navCd = stringResource(R.string.cd_navigation_bar)
     val pillShape = RoundedCornerShape(30.dp)
+    val selectedIndex = BottomNavTab.entries.indexOf(selectedTab).coerceAtLeast(0)
 
     Box(
         contentAlignment = Alignment.Center,
@@ -1024,68 +1133,108 @@ fun FloatingGlassNavBar(
                 .clip(pillShape)
                 .background(palette.navBarFill, pillShape)
                 .border(
-                    width = 1.dp,
+                    width = 1.1.dp,
                     brush = Brush.linearGradient(
                         colors = listOf(palette.glassBorderHighlight, palette.glassBorderTrailing)
                     ),
                     shape = pillShape
                 )
-                .padding(horizontal = 8.dp, vertical = 6.dp)
+                .padding(horizontal = 6.dp, vertical = 6.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                BottomNavTab.entries.forEach { tab ->
-                    val isSelected = tab == selectedTab
-                    val activePillBg by animateColorAsState(
-                        targetValue = if (isSelected) palette.accentCool.copy(alpha = 0.22f) else Color.Transparent,
-                        animationSpec = spring(stiffness = 400f),
-                        label = "navPill"
-                    )
-                    val contentColor by animateColorAsState(
-                        targetValue = if (isSelected) palette.accentCool else palette.textSecondary,
-                        animationSpec = spring(stiffness = 400f),
-                        label = "navTint"
-                    )
+            // Subtle frosted refraction layer inside navbar shell
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clip(RoundedCornerShape(24.dp))
+                    .blur(18.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
+                    .background(palette.glassInnerGlow.copy(alpha = 0.08f))
+            )
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .minimumInteractiveComponentSize()
-                            .testTag(tab.testTag)
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(activePillBg)
-                            .border(
-                                width = if (isSelected) 1.dp else 0.dp,
-                                color = if (isSelected) palette.accentCool.copy(alpha = 0.45f) else Color.Transparent,
-                                shape = RoundedCornerShape(24.dp)
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val tabWidth = maxWidth / BottomNavTab.entries.size
+                val indicatorOffset by animateDpAsState(
+                    targetValue = tabWidth * selectedIndex,
+                    animationSpec = spring(dampingRatio = 0.72f, stiffness = 380f),
+                    label = "navSlideIndicator"
+                )
+
+                // Sliding Liquid Glass Capsule Indicator
+                Box(
+                    modifier = Modifier
+                        .offset(x = indicatorOffset)
+                        .width(tabWidth)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    palette.accentCool.copy(alpha = 0.28f),
+                                    palette.accentCool.copy(alpha = 0.14f)
+                                )
                             )
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = ripple(bounded = true),
-                                onClick = { onSelectTab(tab) }
+                        )
+                        .border(
+                            width = 1.dp,
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    palette.accentCool.copy(alpha = 0.65f),
+                                    palette.glassBorderTrailing
+                                )
+                            ),
+                            shape = RoundedCornerShape(24.dp)
+                        )
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    BottomNavTab.entries.forEach { tab ->
+                        val isSelected = tab == selectedTab
+                        val contentColor by animateColorAsState(
+                            targetValue = if (isSelected) palette.accentCool else palette.textSecondary,
+                            animationSpec = spring(stiffness = 400f),
+                            label = "navTint"
+                        )
+                        val iconScale by animateFloatAsState(
+                            targetValue = if (isSelected) 1.12f else 1f,
+                            animationSpec = spring(dampingRatio = 0.58f, stiffness = 420f),
+                            label = "navIconScale"
+                        )
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .minimumInteractiveComponentSize()
+                                .testTag(tab.testTag)
+                                .clip(RoundedCornerShape(24.dp))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = ripple(bounded = true),
+                                    onClick = { onSelectTab(tab) }
+                                )
+                                .padding(horizontal = 10.dp)
+                        ) {
+                            Icon(
+                                imageVector = tab.icon,
+                                contentDescription = null,
+                                tint = contentColor,
+                                modifier = Modifier
+                                    .size(21.dp)
+                                    .scale(iconScale)
                             )
-                            .padding(horizontal = 12.dp)
-                    ) {
-                        Icon(
-                            imageVector = tab.icon,
-                            contentDescription = null,
-                            tint = contentColor,
-                            modifier = Modifier.size(21.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = stringResource(tab.labelRes),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = if (isSelected) palette.textPrimary else contentColor,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = stringResource(tab.labelRes),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = if (isSelected) palette.textPrimary else contentColor,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
             }

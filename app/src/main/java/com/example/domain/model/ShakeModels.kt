@@ -11,9 +11,18 @@ enum class SamplingRateOption {
 }
 
 enum class AppThemeMode {
-    SYSTEM,
     DARK,
     LIGHT
+}
+
+enum class HapticIntensity(
+    val amplitude: Int,
+    val onDurationMs: Long,
+    val offPulseMs: Long
+) {
+    LIGHT(amplitude = 90, onDurationMs = 35L, offPulseMs = 28L),
+    MEDIUM(amplitude = 175, onDurationMs = 55L, offPulseMs = 42L),
+    STRONG(amplitude = 255, onDurationMs = 85L, offPulseMs = 60L)
 }
 
 enum class PauseReason {
@@ -29,11 +38,12 @@ data class ShakeSettings(
     val cooldownMillis: Long = 1500L,
     val startOnBoot: Boolean = false,
     val vibrateOnToggle: Boolean = true,
+    val hapticIntensity: HapticIntensity = HapticIntensity.MEDIUM,
     val pauseDuringCalls: Boolean = true,
     val batterySaverEnabled: Boolean = false,
     val batteryThresholdPercent: Int = 15,
     val samplingRate: SamplingRateOption = SamplingRateOption.NORMAL,
-    val themeMode: AppThemeMode = AppThemeMode.SYSTEM,
+    val themeMode: AppThemeMode = AppThemeMode.DARK,
     val onboardingCompleted: Boolean = false
 )
 

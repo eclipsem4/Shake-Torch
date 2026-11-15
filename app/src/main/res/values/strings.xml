@@ -59,6 +59,8 @@
     <string name="sensitivity_low">Low</string>
     <string name="sensitivity_medium">Medium</string>
     <string name="sensitivity_high">High</string>
+    <string name="sensitivity_range_hard">1 • Harder shake</string>
+    <string name="sensitivity_range_light">10 • Lighter shake</string>
     <string name="settings_cooldown_title">Toggle Cooldown</string>
     <string name="settings_cooldown_desc">Minimum pause between light ON/OFF toggles</string>
     <string name="settings_cooldown_value">%1$.1f s</string>
@@ -66,6 +68,10 @@
     <string name="settings_section_behavior">Feedback &amp; Automation</string>
     <string name="settings_vibrate_title">Vibrate on Toggle</string>
     <string name="settings_vibrate_desc">1 pulse when flashlight turns ON, 2 pulses for OFF</string>
+    <string name="settings_haptic_intensity_title">Haptic Intensity</string>
+    <string name="settings_haptic_light">Light</string>
+    <string name="settings_haptic_medium">Medium</string>
+    <string name="settings_haptic_strong">Strong</string>
     <string name="settings_pause_calls_title">Pause During Calls</string>
     <string name="settings_pause_calls_desc">Automatically suspend detection while ringing or in call</string>
     <string name="settings_boot_title">Start on Device Boot</string>
@@ -81,11 +87,11 @@
     <string name="settings_sampling_ui">Responsive (UI)</string>
 
     <string name="settings_section_appearance">Appearance</string>
-    <string name="settings_theme_title">Glass Theme</string>
-    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_title">Appearance Mode</string>
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_replay_onboarding">Replay Setup Guide</string>
+    <string name="cd_theme_toggle">Toggle dark and light mode</string>
 
     <!-- Battery & Permissions Screen -->
     <string name="system_title">Battery &amp; Permissions</string>

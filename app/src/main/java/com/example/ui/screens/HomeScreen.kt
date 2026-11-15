@@ -1,8 +1,16 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,8 +36,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BatteryAlert
 import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.FlashlightOff
 import androidx.compose.material.icons.rounded.FlashlightOn
+import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.PhoneInTalk
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Sensors
@@ -46,6 +56,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -54,7 +66,11 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.R
+import com.example.domain.model.AppThemeMode
 import com.example.domain.model.GestureMode
 import com.example.domain.model.PauseReason
 import com.example.hardware.ShakeDetector
@@ -75,16 +91,30 @@ fun HomeScreen(
     onResetPeak: () -> Unit,
     onSensitivityChange: (Int) -> Unit,
     onSetMeterPreviewActive: (Boolean) -> Unit,
+    onThemeModeChange: (AppThemeMode) -> Unit,
     bottomContentPadding: PaddingValues,
     modifier: Modifier = Modifier
 ) {
     val palette = LocalGlassPalette.current
     val settings = uiState.settings
     val serviceState = uiState.serviceState
+    val isDark = settings.themeMode == AppThemeMode.DARK
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    DisposableEffect(serviceState.isServiceRunning) {
-        onSetMeterPreviewActive(!serviceState.isServiceRunning)
+    DisposableEffect(lifecycleOwner, serviceState.isServiceRunning) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> onSetMeterPreviewActive(!serviceState.isServiceRunning)
+                Lifecycle.Event.ON_PAUSE -> onSetMeterPreviewActive(false)
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+            onSetMeterPreviewActive(!serviceState.isServiceRunning)
+        }
         onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
             onSetMeterPreviewActive(false)
         }
     }
@@ -128,7 +158,7 @@ fun HomeScreen(
                 .padding(horizontal = 20.dp)
                 .padding(top = 16.dp, bottom = bottomContentPadding.calculateBottomPadding() + 16.dp)
         ) {
-            // Header + App PFP + Live Status Pill
+            // Header + App PFP + Quick Dark/Light Glass Toggle
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -163,7 +193,7 @@ fun HomeScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
 
                     Column {
                         Text(
@@ -183,41 +213,125 @@ fun HomeScreen(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // Live status glass pill
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
+                val themeIconRotation by animateFloatAsState(
+                    targetValue = if (isDark) 0f else 180f,
+                    animationSpec = spring(dampingRatio = 0.65f, stiffness = 360f),
+                    label = "themeIconRotation"
+                )
+                Box(
+                    contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(50))
-                        .background(statusColor.copy(alpha = 0.16f))
-                        .border(
-                            width = 1.dp,
-                            color = statusColor.copy(alpha = 0.45f),
-                            shape = RoundedCornerShape(50)
+                        .size(48.dp)
+                        .minimumInteractiveComponentSize()
+                        .testTag("theme_toggle_button")
+                        .clip(CircleShape)
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = listOf(palette.glassFillTop, palette.glassFillBottom)
+                            )
                         )
-                        .padding(horizontal = 12.dp, vertical = 7.dp)
+                        .border(
+                            width = 1.1.dp,
+                            brush = Brush.linearGradient(
+                                colors = listOf(palette.glassBorderHighlight, palette.glassBorderTrailing)
+                            ),
+                            shape = CircleShape
+                        )
+                        .clickable(
+                            indication = ripple(bounded = true),
+                            interactionSource = androidx.compose.runtime.remember {
+                                androidx.compose.foundation.interaction.MutableInteractionSource()
+                            },
+                            onClick = {
+                                onThemeModeChange(if (isDark) AppThemeMode.LIGHT else AppThemeMode.DARK)
+                            }
+                        )
                 ) {
-                    val badgeIcon = when (serviceState.pauseReason) {
-                        PauseReason.IN_CALL -> Icons.Rounded.PhoneInTalk
-                        PauseReason.LOW_BATTERY -> Icons.Rounded.BatteryAlert
-                        PauseReason.NO_FLASH_HARDWARE -> Icons.Rounded.WarningAmber
-                        PauseReason.NONE -> Icons.Rounded.Sensors
+                    Crossfade(
+                        targetState = isDark,
+                        animationSpec = tween(240),
+                        label = "themeToggleIcon"
+                    ) { dark ->
+                        Icon(
+                            imageVector = if (dark) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
+                            contentDescription = stringResource(R.string.cd_theme_toggle),
+                            tint = if (dark) TorchAmber else palette.accentCool,
+                            modifier = Modifier
+                                .size(22.dp)
+                                .rotate(themeIconRotation)
+                        )
                     }
-                    Icon(
-                        imageVector = badgeIcon,
-                        contentDescription = null,
-                        tint = statusColor,
-                        modifier = Modifier.size(15.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = statusText,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = palette.textPrimary
-                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Centered Live Status Glass Pill above the centerpiece Orb
+            val livePulseTransition = rememberInfiniteTransition(label = "statusPulse")
+            val dotScale by livePulseTransition.animateFloat(
+                initialValue = 0.85f,
+                targetValue = 1.25f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1100, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "statusDotScale"
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                statusColor.copy(alpha = 0.22f),
+                                palette.glassFillBottom
+                            )
+                        )
+                    )
+                    .border(
+                        width = 1.dp,
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                statusColor.copy(alpha = 0.65f),
+                                palette.glassBorderTrailing
+                            )
+                        ),
+                        shape = RoundedCornerShape(50)
+                    )
+                    .padding(horizontal = 14.dp, vertical = 7.dp)
+            ) {
+                val badgeIcon = when (serviceState.pauseReason) {
+                    PauseReason.IN_CALL -> Icons.Rounded.PhoneInTalk
+                    PauseReason.LOW_BATTERY -> Icons.Rounded.BatteryAlert
+                    PauseReason.NO_FLASH_HARDWARE -> Icons.Rounded.WarningAmber
+                    PauseReason.NONE -> Icons.Rounded.Sensors
+                }
+                if (serviceState.isServiceRunning && serviceState.pauseReason == PauseReason.NONE) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .scale(dotScale)
+                            .clip(CircleShape)
+                            .background(statusColor)
+                    )
+                    Spacer(modifier = Modifier.width(7.dp))
+                }
+                Icon(
+                    imageVector = badgeIcon,
+                    contentDescription = null,
+                    tint = statusColor,
+                    modifier = Modifier.size(15.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = palette.textPrimary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Friendly warning card if hardware lacks a camera flash unit
             AnimatedVisibility(visible = !serviceState.hasFlashUnit) {
@@ -487,6 +601,22 @@ fun HomeScreen(
                         contentDescriptionText = stringResource(R.string.cd_sensitivity_slider),
                         modifier = Modifier.testTag("home_sensitivity_slider")
                     )
+
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = stringResource(R.string.sensitivity_range_hard),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = palette.textSecondary
+                        )
+                        Text(
+                            text = stringResource(R.string.sensitivity_range_light),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = palette.textSecondary
+                        )
+                    }
                 }
             }
         }
